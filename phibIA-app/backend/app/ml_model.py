@@ -2,8 +2,9 @@ import pickle
 import numpy as np
 import librosa
 import os
+import subprocess
 
-# === CARGAR MODELO ===
+# CARGAR MODELO
 MODEL_PATH = "app/model/anfibios_model_mejorado.pkl"
 
 with open(MODEL_PATH, "rb") as f:
@@ -17,9 +18,17 @@ N_MFCC = model_data["n_mfcc"]
 N_FFT = model_data["n_fft"]
 HOP_LENGTH = model_data["hop_length"]
 
-# === FUNCIÓN PARA EXTRAER FEATURES ===
+# FUNCIÓN PARA EXTRAER FEATURES 
 def extract_features(file_path):
     try:
+        # Verificar si el archivo es .webm
+        if file_path.endswith('.webm'):
+            wav_path = file_path.replace('.webm', '.wav')
+            file_path = convert_webm_to_wav(file_path, wav_path)
+            if not file_path:
+                print("Error en la conversión de .webm a .wav")
+                return None
+            
         audio, sr = librosa.load(file_path, sr=None)
 
         # 1. MFCC
@@ -68,7 +77,7 @@ def extract_features(file_path):
         print(f"Error procesando {file_path}: {str(e)}")
         return None
 
-# === FUNCIÓN DE PREDICCIÓN ===
+# FUNCIÓN DE PREDICCIÓN
 def predict_species(file_path):
     features = extract_features(file_path)
     if features is None:
@@ -79,7 +88,24 @@ def predict_species(file_path):
 
     # Predicción del modelo
     pred_encoded = model.predict(X_scaled)[0]
+    
+    # Obtener probabilidades de todas las clases
+    probabilities = model.predict_proba(X_scaled)[0]
+    
+    # La confianza es la probabilidad máxima (de la clase predicha)
+    confidence = float(max(probabilities)) * 100  # Convertir a porcentaje
 
     # Decodificar nombre de especie
     especie = label_encoder.inverse_transform([pred_encoded])[0]
-    return especie
+    
+    return especie, confidence
+
+def convert_webm_to_wav(input_path, output_path):
+    try:
+        # Comando FFmpeg para convertir .webm a .wav
+        command = ['ffmpeg', '-i', input_path, output_path, '-y']
+        subprocess.run(command, check=True)
+        return output_path
+    except Exception as e:
+        print(f"Error al convertir {input_path} a .wav: {e}")
+        return None

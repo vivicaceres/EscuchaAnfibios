@@ -3,22 +3,23 @@ import DashboardLayout from "./layouts/DahboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
-import Upload from "./pages/Upload";
 import "./styles/App.css";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { PublicRoute } from "./components/PublicRoute";
 
 function App() {
   return (
     <Router>
       <Routes>
-
-        <Route path="/" element={<DashboardLayout />}>
-          <Route path="home" element={<Home />} />
+        {/* Rutas protegidas: solo si hay sesión */}
+        <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          <Route path="" element={<Home />} />
         </Route>
+        <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
 
-        <Route path="/home" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/upload" element={<Upload />} />
+        {/* Rutas públicas: solo si NO hay sesión */}
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       </Routes>
     </Router>
   );
